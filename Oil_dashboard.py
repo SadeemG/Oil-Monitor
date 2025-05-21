@@ -113,44 +113,64 @@ def get_eia_series(series_id):
 
 
 # --- NEWS FROM YFINANCE + NEWSAPI ---
-def get_news():
-    keywords = ["oil", "crude", "brent", "OPEC", "barrel", "WTI", "refinery"]
+def get_news(debug=False):
+    keywords = [
+        "oil", "crude", "brent", "WTI", "OPEC", "barrel", "refinery", 
+        "fossil", "diesel", "gasoline", "energy", "production", "supply", "pipeline"
+    ]
+    
+    news_items = []
+
+    # --- Primary: NewsAPI ---
     try:
         url = (
             f"https://newsapi.org/v2/everything?"
             f"q=oil+OR+brent+OR+opec+OR+crude&language=en&sortBy=publishedAt&pageSize=10&apiKey={NEWS_API_KEY}"
         )
         response = requests.get(url)
-        articles = response.json().get("articles", [])
+        data = response.json()
 
-        # Filter by keywords
-        filtered = [
-            {
-                "title": a["title"],
-                "link": a["url"],
-                "publisher": a["source"]["name"],
-                "time": a["publishedAt"],
-                "desc": a.get("description", "")
-            }
-            for a in articles
-            if any(
-                kw.lower() in (a.get("title", "") + a.get("description", "")).lower()
-                for kw in keywords
-            )
-        ]
-        return filtered
-    except:
+        if debug:
+            st.write("NewsAPI status:", response.status_code)
+            st.write("Raw NewsAPI response:", data)
+
+        if response.status_code == 200:
+            articles = data.get("articles", [])
+            for a in articles:
+                text_blob = (a.get("title", "") + " " + a.get("description", "")).lower()
+                if any(kw.lower() in text_blob for kw in keywords):
+                    news_items.append({
+                        "title": a["title"],
+                        "link": a["url"],
+                        "publisher": a["source"]["name"],
+                        "time": a["publishedAt"],
+                        "desc": a.get("description", "")
+                    })
+
+    except Exception as e:
+        if debug:
+            st.warning(f"NewsAPI fetch failed: {e}")
+
+    # --- Fallback: yfinance ---
+    if not news_items:
         try:
-            fallback = yf.Ticker("BZ=F").news[:5]
-            return [{
-                "title": item["title"],
-                "link": item["link"],
-                "publisher": item["publisher"],
-                "time": item.get("providerPublishTime", "N/A"),
-                "desc": item.get("summary", "")
-            } for item in fallback]
-        except:
-            return []
+            fallback_news = yf.Ticker("BZ=F").news[:5]
+            for item in fallback_news:
+                news_items.append({
+                    "title": item["title"],
+                    "link": item["link"],
+                    "publisher": item.get("publisher", "Unknown"),
+                    "time": item.get("providerPublishTime", "N/A"),
+                    "desc": item.get("summary", "")
+                })
+            if debug:
+                st.write("Used yfinance fallback")
+        except Exception as e:
+            if debug:
+                st.warning(f"yfinance fallback failed: {e}")
+
+    return news_items
+
 
 
 
@@ -190,12 +210,18 @@ plot_line_chart(wti_df, f"WTI Crude ({wti_tf})")
 # --- NEWS SECTION ---
 st.subheader("📰 Top Oil-Related News")
 
-for item in get_news():
-    st.markdown(f"**[{item['title']}]({item['link']})**")
-    st.markdown(f"*{item['publisher']} - {item['time'][:10]}*")
-    if item['desc']:
-        st.markdown(item['desc'])
-    st.markdown("---")
+news_items = get_news(debug=False)
+
+if not news_items:
+    st.info("No relevant oil news articles found right now. Try again later.")
+else:
+    for item in news_items:
+        st.markdown(f"**[{item['title']}]({item['link']})**")
+        st.markdown(f"*{item['publisher']} - {item['time'][:10]}*")
+        if item['desc']:
+            st.markdown(item['desc'])
+        st.markdown("---")
+
 
 
 # --- EIA DATA SECTION ---
