@@ -160,35 +160,31 @@ def get_news():
 
 st.subheader("📈 Live Oil Prices")
 
-col1, col2 = st.columns(2)
+# --- BRENT SECTION ---
+st.subheader("🛢️ Brent Crude")
 
-# --- METRICS ---
-with col1:
-    brent_price, brent_change, brent_df = get_oil_price("BZ=F", "5d", "1d")
-    if brent_price:
-        st.metric("Brent Crude", f"${brent_price:.2f}", f"{brent_change:.2f}%")
+brent_price, brent_change, _ = get_oil_price("BZ=F", "5d", "1d")
+if brent_price:
+    st.metric("Brent Price", f"${brent_price:.2f}", f"{brent_change:.2f}%")
 
-with col2:
-    wti_price, wti_change, wti_df = get_oil_price("CL=F", "5d", "1d")
-    if wti_price:
-        st.metric("WTI Crude", f"${wti_price:.2f}", f"{wti_change:.2f}%")
+brent_tf = st.radio("Brent timeframe:", list(timeframes.keys()), horizontal=True, key="brent")
+brent_period, brent_interval = timeframes[brent_tf]
+brent_df = yf.download("BZ=F", period=brent_period, interval=brent_interval, progress=False)
+plot_line_chart(brent_df, f"Brent Crude ({brent_tf})")
 
-# --- TIMEFRAME SELECTOR ---
-col1, col2 = st.columns(2)
 
-with col1:
-    brent_tf = st.radio("Brent timeframe:", list(timeframes.keys()), horizontal=True, key="brent")
-    brent_period, brent_interval = timeframes[brent_tf]
-    brent_df = yf.download("BZ=F", period=brent_period, interval=brent_interval, progress=False)
-    st.write("Brent data shape:", brent_df.shape)
-    plot_line_chart(brent_df, f"Brent Crude ({brent_tf})")
+# --- WTI SECTION ---
+st.subheader("🛢️ WTI Crude")
 
-with col2:
-    wti_tf = st.radio("WTI timeframe:", list(timeframes.keys()), horizontal=True, key="wti")
-    wti_period, wti_interval = timeframes[wti_tf]
-    wti_df = yf.download("CL=F", period=wti_period, interval=wti_interval, progress=False)
-    st.write("WTI data shape:", wti_df.shape)
-    plot_line_chart(wti_df, f"WTI Crude ({wti_tf})")
+wti_price, wti_change, _ = get_oil_price("CL=F", "5d", "1d")
+if wti_price:
+    st.metric("WTI Price", f"${wti_price:.2f}", f"{wti_change:.2f}%")
+
+wti_tf = st.radio("WTI timeframe:", list(timeframes.keys()), horizontal=True, key="wti")
+wti_period, wti_interval = timeframes[wti_tf]
+wti_df = yf.download("CL=F", period=wti_period, interval=wti_interval, progress=False)
+plot_line_chart(wti_df, f"WTI Crude ({wti_tf})")
+
 
 
 # --- NEWS SECTION ---
