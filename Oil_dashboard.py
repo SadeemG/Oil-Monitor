@@ -181,7 +181,6 @@ with col1:
     brent_period, brent_interval = timeframes[brent_tf]
     brent_df = yf.download("BZ=F", period=brent_period, interval=brent_interval, progress=False)
     st.write("Brent data shape:", brent_df.shape)
-    st.write(brent_df.tail())
     plot_line_chart(brent_df, f"Brent Crude ({brent_tf})")
 
 with col2:
@@ -189,7 +188,6 @@ with col2:
     wti_period, wti_interval = timeframes[wti_tf]
     wti_df = yf.download("CL=F", period=wti_period, interval=wti_interval, progress=False)
     st.write("WTI data shape:", wti_df.shape)
-    st.write(wti_df.tail())
     plot_line_chart(wti_df, f"WTI Crude ({wti_tf})")
 
 
